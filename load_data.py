@@ -1,12 +1,10 @@
-import math
 import os
+
 import cv2
 import numpy as np
-import matplotlib.image as img
-import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from numba import jit, njit, prange
+from torch.utils.data import Dataset, DataLoader
 
 def get_ck_code(subject_num, session_num, data):
     for index, row in data.iterrows():
@@ -15,7 +13,7 @@ def get_ck_code(subject_num, session_num, data):
 
 def load_all_data(root_data_dir='./data/face_data'):
     if not os.path.isdir(root_data_dir):
-        raise OSError('Data directory {} does not exist. Try to extract data from zip file first'.format(data_dir))
+        raise OSError('Data directory {} does not exist. Try to extract data from zip file first'.format(root_data_dir))
 
     label_map = {
         1:0,
@@ -68,7 +66,7 @@ def load_all_data(root_data_dir='./data/face_data'):
                 if os.path.isdir(session_data_path):
                     try:
                         session_num = int(session_dir)
-                        session_img = img.imread(os.path.join(session_data_path,os.listdir(session_data_path)[-1]))
+                        session_img = os.path.join(session_data_path,os.listdir(session_data_path)[-1])
 
                         label_file = open(os.path.join(session_label_path,os.listdir(session_label_path)[0]), 'r')
                         label_vector = np.zeros(18, dtype=int)
@@ -107,7 +105,7 @@ def load_all_data(root_data_dir='./data/face_data'):
                 if os.path.isdir(session_path):
                     session_num = int(session_dir)
                     try:
-                        session_img = img.imread(os.path.join(session_path,os.listdir(session_path)[-1]))
+                        session_img = os.path.join(session_path,os.listdir(session_path)[-1])
 
                         # extract necessary aus
                         label = str(get_ck_code(subject, session_num, ck_frame))
@@ -127,28 +125,135 @@ def load_all_data(root_data_dir='./data/face_data'):
     all_data = ck_plus_data + ck_data
     all_labels = ck_plus_labels + ck_labels
 
-    # code to save to excel file
-    # import xlwt
-    # from xlsxwriter import Workbook
-    # wb = Workbook('./FACS_labels.xsl')
-    # sheet1 = wb.add_worksheet('Sheet 1')
-    #
-    #
-    # for x in range(len(all_labels)):
-    #     label = all_labels[x]
-    #     r = [label[0], label[1]]
-    #     r.extend(label[2])
-    #     sheet1.write_row(x,0,r)
-    #
-    # wb.close()
-
     train_data, other_data,train_labels, other_labels = train_test_split(all_data, all_labels, test_size=0.3)
     test_data, valid_data, test_labels, valid_labels = train_test_split(other_data, other_labels, test_size=0.5)
 
     return train_data, train_labels, test_data, valid_data, test_labels, valid_labels
 
+def write_labels_to_csv(path, data, img_paths):
+    # code to save to excel file
+    file = open(path, 'w')
 
+    column_names = [
+        'subject',
+        'session',
+        'path',
+        '1',
+        '2',
+        '4',
+        '5',
+        '6',
+        '7',
+        '9',
+        '10',
+        '12',
+        '14',
+        '15',
+        '17',
+        '20',
+        '23',
+        '25',
+        '26',
+        '28',
+        '43'
+    ]
+    column_str = ','.join(column_names)
+    column_str = ','+column_str+'\n'
+    file.write(column_str)
+    for x in range(len(data)):
+        label = data[x]
+        r = ['0',str(label[0]), str(label[1]), img_paths[x].split('\\')[-1]]
+        r.extend(label[2].tolist())
+        r = [str(x) for x in r]
+        file.write(','.join(r)+'\n')
 
+    file.close()
+    return
+
+def separate_data(train_data, train_labels, test_data, valid_data, test_labels, valid_labels):
+    try:
+         os.mkdir('./train_data')
+         os.mkdir('./test_data')
+         os.mkdir('./valid_data')
+    except:
+        print("Could not make directories maybe they already exist or no permission")
+        print("May not be issue")
+
+    # copy images to directories
+    from shutil import copyfile
+    for img in train_data:
+        img_name = img.split('\\')[-1]
+        copyfile(img, './train_data/'+img_name)
+
+    for img in test_data:
+        img_name = img.split('\\')[-1]
+        copyfile(img, './test_data/'+img_name)
+
+    for img in valid_data:
+        img_name = img.split('\\')[-1]
+        copyfile(img, './valid_data/'+img_name)
+
+    # save the csv files
+    write_labels_to_csv('./train_data/labels.csv', train_labels, train_data)
+    write_labels_to_csv('./test_data/labels.csv',test_labels, test_data)
+    write_labels_to_csv('./valid_data/labels.csv', valid_labels,valid_data)
+
+class ImgDataset(Dataset):
+
+    def __init__(self, data_path=''):
+        """
+        Args:
+          - label_csv: Path to the csv file with action unit labels.
+          - train: training set if True, otherwise validation set
+          - intensity (bool): labels are intensities (between 0 and 5) rather
+                              than presence (either 0 or 1).
+          - transform: transform applied to an image input
+        """
+        label_path = data_path+'/labels.csv'
+        self.root_dir = data_path
+
+        self.au_frame = pd.read_csv(label_path,engine='python')
+        self.label_cols = [
+        '1',
+        '2',
+        '4',
+        '5',
+        '6',
+        '7',
+        '9',
+        '10',
+        '12',
+        '14',
+        '15',
+        '17',
+        '20',
+        '23',
+        '25',
+        '26',
+        '28',
+        '43'
+    ]
+
+    def __len__(self):
+        return len(self.au_frame)
+
+    def __getitem__(self, idx):
+        # Get image at idx
+        image_id = self.au_frame.iloc[idx]['path']
+        image_path = self.root_dir + '/' + image_id
+        image = cv2.imread(image_path)
+
+        # Get AU labels
+        aus = self.au_frame.iloc[idx][self.label_cols]
+        aus = np.array(aus, dtype=float)
+
+        sample = {'image': image, 'labels': aus}
+
+        return sample
 
 if __name__ == '__main__':
-    load_all_data()
+    # Is used if data has not been sorted yet
+    #train_data, train_labels, test_data, valid_data, test_labels, valid_labels = load_all_data()
+    #separate_data(train_data, train_labels, test_data, valid_data, test_labels, valid_labels)
+    a = ImgDataset('./train_data')
+    print(a.__getitem__(0))
