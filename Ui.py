@@ -32,7 +32,7 @@ def process_img(filename, window):
 def main():
     file_list_column = [
         [
-            sg.Text("Choose image"),
+            sg.Text("Choose image that is png, jpeg or jpg"),
             sg.In(size=(25, 1), enable_events=True, key="-ADDIMAGE-"),
             sg.FileBrowse(),
         ],
@@ -70,7 +70,7 @@ def main():
             image_path = values["-ADDIMAGE-"]
             img_name = image_path.split('/')[-1]
 
-            if img_name.lower().endswith((".png")):
+            if img_name.lower().endswith((".png", ".jpeg", ".jpg")):
                 window["-FILE LIST-"].update([image_path])
 
         elif event == "-FILE LIST-":  # A file was chosen from the listbox
