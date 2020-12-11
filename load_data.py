@@ -11,7 +11,7 @@ def get_ck_code(subject_num, session_num, data):
         if int(row['Subject #']) == subject_num and int(row['Session #']) == session_num:
             return row['FACS Code']
 
-def load_all_data(root_data_dir='./data/face_data'):
+def load_all_data(root_data_dir='../data/face_data'):
     if not os.path.isdir(root_data_dir):
         raise OSError('Data directory {} does not exist. Try to extract data from zip file first'.format(root_data_dir))
 
@@ -66,10 +66,14 @@ def load_all_data(root_data_dir='./data/face_data'):
                 if os.path.isdir(session_data_path):
                     try:
                         session_num = int(session_dir)
+                        neutral_img = os.path.join(session_data_path,os.listdir(session_data_path)[0])
+                        if neutral_img.find('DS') != -1:
+                            neutral_img = os.path.join(session_data_path, os.listdir(session_data_path)[1])
                         session_img = os.path.join(session_data_path,os.listdir(session_data_path)[-1])
 
                         label_file = open(os.path.join(session_label_path,os.listdir(session_label_path)[0]), 'r')
                         label_vector = np.zeros(18, dtype=int)
+                        neutral_vector = np.zeros(18, dtype=int)
 
                         # extract necessary aus
                         for line in label_file:
@@ -79,7 +83,9 @@ def load_all_data(root_data_dir='./data/face_data'):
                                 label_vector[label_map[au]] = 1
                         label_file.close()
                         ck_plus_labels.append([subject,session_num, label_vector])
+                        ck_plus_labels.append([subject, session_num, neutral_vector])
                         ck_plus_data.append(session_img)
+                        ck_plus_data.append(neutral_img)
                     except:
                         continue
     print("Done loading ck plus data now loading ck data")
@@ -106,27 +112,82 @@ def load_all_data(root_data_dir='./data/face_data'):
                     session_num = int(session_dir)
                     try:
                         session_img = os.path.join(session_path,os.listdir(session_path)[-1])
+                        neutral_img = os.path.join(session_path, os.listdir(session_path)[0])
+                        if neutral_img.find('DS') != -1:
+                            neutral_img = os.path.join(session_data_path, os.listdir(session_data_path)[1])
 
                         # extract necessary aus
                         label = str(get_ck_code(subject, session_num, ck_frame))
                         if label == 'None':
                             continue
                         label_vector = np.zeros(18, dtype=int)
+                        neutral_vector = np.zeros(18, dtype=int)
                         label_items = label.split('+')
                         for word in label_items:
                             au = int(''.join(c for c in word if c.isdigit()))
                             if au in label_map:
                                 label_vector[label_map[au]] = 1
                         ck_labels.append([subject,session_num, label_vector])
+                        ck_labels.append([subject, session_num, neutral_vector])
                         ck_data.append(session_img)
+                        ck_data.append(neutral_img)
                     except:
                         continue
 
-    all_data = ck_plus_data + ck_data
-    all_labels = ck_plus_labels + ck_labels
+    # group the images based on subject for ck
+    ck_subject_dic = {}
+    for x in range(len(ck_data)):
+        subject, session, vector, img = 'ck_'+str(ck_labels[x][0]), ck_labels[x][1], ck_labels[x][2], ck_data[x]
+        ck_subject_dic.setdefault(subject, [])
+        ck_subject_dic[subject].append([session, vector, img])
 
-    train_data, other_data,train_labels, other_labels = train_test_split(all_data, all_labels, test_size=0.3)
-    test_data, valid_data, test_labels, valid_labels = train_test_split(other_data, other_labels, test_size=0.5)
+    # group the images based on subject for ck+
+    for x in range(len(ck_plus_data)):
+        subject, session, vector, img = 'ck_plus_' + str(ck_plus_labels[x][0]),\
+                                        ck_plus_labels[x][1], ck_plus_labels[x][2], ck_plus_data[x]
+        ck_subject_dic.setdefault(subject, [])
+        ck_subject_dic[subject].append([session, vector, img])
+
+    # split data into test, train and valid sets
+    subject_arr = np.array(list(ck_subject_dic.keys()))
+    np.random.shuffle(subject_arr)
+
+    train_subjects, test_subjects = train_test_split(subject_arr, test_size=0.05)
+    batch2, batch1 = train_test_split(train_subjects, test_size=1/3)
+    batch2, batch3 = train_test_split(batch2, test_size=0.5)
+
+    train_subjects = [[],[],[]]
+    valid_subjects = [[],[],[]]
+    train_subjects[0], valid_subjects[0] = train_test_split(batch1, test_size=1/3)
+    train_subjects[1], valid_subjects[1] = train_test_split(batch2, test_size=1/3)
+    train_subjects[2], valid_subjects[2] = train_test_split(batch3, test_size=1/3)
+
+    # populate labels and images
+    test_data, test_labels = [], []
+    for subject in test_subjects:
+        for item in ck_subject_dic[subject]:
+            session, vector, img = item
+            test_data.append(img)
+            test_labels.append([subject, session, vector])
+
+
+    train_data = [[],[],[]]
+    train_labels = [[],[],[]]
+    for batch in range(3):
+        for subject in train_subjects[batch]:
+            for item in ck_subject_dic[subject]:
+                session, vector, img = item
+                train_data[batch].append(img)
+                train_labels[batch].append([subject, session, vector])
+
+    valid_data = [[],[],[]]
+    valid_labels = [[],[],[]]
+    for batch in range(3):
+        for subject in valid_subjects[batch]:
+            for item in ck_subject_dic[subject]:
+                session, vector, img = item
+                valid_data[batch].append(img)
+                valid_labels[batch].append([subject, session, vector])
 
     return train_data, train_labels, test_data, valid_data, test_labels, valid_labels
 
@@ -160,6 +221,8 @@ def write_labels_to_csv(path, data, img_paths):
     column_str = ','.join(column_names)
     column_str = ','+column_str+'\n'
     file.write(column_str)
+
+
     for x in range(len(data)):
         label = data[x]
         r = ['0',str(label[0]), str(label[1]), img_paths[x].split('\\')[-1]]
@@ -172,31 +235,35 @@ def write_labels_to_csv(path, data, img_paths):
 
 def separate_data(train_data, train_labels, test_data, valid_data, test_labels, valid_labels):
     try:
-         os.mkdir('./train_data')
-         os.mkdir('./test_data')
-         os.mkdir('./valid_data')
+        for batch in range(3):
+            os.mkdir('./train_data_{}'.format(batch))
+            os.mkdir('./valid_data_{}'.format(batch))
+        os.mkdir('./test_data')
     except:
         print("Could not make directories maybe they already exist or no permission")
         print("May not be issue")
 
     # copy images to directories
     from shutil import copyfile
-    for img in train_data:
-        img_name = img.split('\\')[-1]
-        copyfile(img, './train_data/'+img_name)
+    for batch in range(3):
+        for img in train_data[batch]:
+            img_name = img.split('\\')[-1]
+            copyfile(img, './train_data_{}/'.format(batch)+img_name)
 
     for img in test_data:
         img_name = img.split('\\')[-1]
         copyfile(img, './test_data/'+img_name)
 
-    for img in valid_data:
-        img_name = img.split('\\')[-1]
-        copyfile(img, './valid_data/'+img_name)
+    for batch in range(3):
+        for img in valid_data[batch]:
+            img_name = img.split('\\')[-1]
+            copyfile(img, './valid_data_{}/'.format(batch)+img_name)
 
     # save the csv files
-    write_labels_to_csv('./train_data/labels.csv', train_labels, train_data)
-    write_labels_to_csv('./test_data/labels.csv',test_labels, test_data)
-    write_labels_to_csv('./valid_data/labels.csv', valid_labels,valid_data)
+    for batch in range(3):
+        write_labels_to_csv('./train_data_{}/labels.csv'.format(batch), train_labels[batch], train_data[batch])
+        write_labels_to_csv('./valid_data_{}/labels.csv'.format(batch),valid_labels[batch], valid_data[batch])
+    write_labels_to_csv('./test_data/labels.csv', test_labels, test_data)
 
 class ImgDataset(Dataset):
 
@@ -253,7 +320,7 @@ class ImgDataset(Dataset):
 
 if __name__ == '__main__':
     # Is used if data has not been sorted yet
-    #train_data, train_labels, test_data, valid_data, test_labels, valid_labels = load_all_data()
-    #separate_data(train_data, train_labels, test_data, valid_data, test_labels, valid_labels)
-    a = ImgDataset('./train_data')
-    print(a.__getitem__(0))
+    train_data, train_labels, test_data, valid_data, test_labels, valid_labels = load_all_data()
+    separate_data(train_data, train_labels, test_data, valid_data, test_labels, valid_labels)
+    # a = ImgDataset('./train_data_1')
+    # print(a.__getitem__(0))

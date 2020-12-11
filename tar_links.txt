@@ -1,11 +1,1 @@
-Finetuning Datasets:
-
-https://drive.google.com/file/d/12vsiRhWozgcrjoJ_-mRi3x0Pedo3IgpJ/view?usp=sharing
-
-https://drive.google.com/file/d/1dqY_l7OIDWGVCVlgt-FF5B2loZuFX_FB/view?usp=sharing
-
-https://drive.google.com/file/d/1KEU1zX5YnSOSf8ugo_QIdjSu61O54i6r/view?usp=sharing
-
-Pretraining Datasets:
-
-https://drive.google.com/drive/folders/1EfdX7wJgDfG4_X-oXLS_EsztYjZgZgrt?usp=sharing
+https://drive.google.com/file/d/11NVWMdPSSQ-vDXV5vMpNCEhOfhCx7YtH/view?usp=sharing
