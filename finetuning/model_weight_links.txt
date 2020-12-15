@@ -1,0 +1,10 @@
+Model Weights:  (NOTE: These have only been trained on 2 folds each, not the whole training set)
+
+- First fold: unfreeze only fc layers (~92% accuracy)
+https://drive.google.com/file/d/1SuvKgPBAa5IaTJNX2WOcnppqxnA--U8-/view?usp=sharing
+
+- Second fold: unfreeze fc layers + last residual block (~93.6% accuracy)
+https://drive.google.com/file/d/1-1O75IChquX20G5W0siLpxmwAv4qCchW/view?usp=sharing
+
+- Third fold: unfreeze fc layers + last 2 residual blocks (~94.3% accuracy)
+https://drive.google.com/file/d/1-CqrTLGltwVXHmK08UW-Ewx39XNUl44L/view?usp=sharing
