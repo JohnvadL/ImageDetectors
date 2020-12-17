@@ -3,12 +3,12 @@
 ### Target Completion Date: Saturday or Sunday
 
 ### TODO list: 
-1. [ ] Face Detection + Registration
-2. [ ] Model Pretraining*
-3. [ ] Build training sets and test sets for CK/CK+.
+1. [x] Face Detection + Registration
+2. [x] Model Pretraining*
+3. [x] Build training sets and test sets for CK/CK+.
 4. [ ] Fine-tune base model on CK/CK+
 5. [x] Map FACS to emojis
-6. [ ] Implement Emoji Matching
+6. [x] Implement Emoji Matching
 7. [ ] Make a live-camera interface to display both face and predicted emoji**
 
 \*  Use CelebA database (~100,000 images) and run each face through OpenFace AU predictor to obtain noisy labels for faces, then train on pretrained VGG-13 model to obtain base model. Training/Test set should be divided based on gender to prevent overfitting.
