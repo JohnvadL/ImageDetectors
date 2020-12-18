@@ -8,3 +8,6 @@ https://drive.google.com/file/d/1-1O75IChquX20G5W0siLpxmwAv4qCchW/view?usp=shari
 
 - Third fold: unfreeze fc layers + last 2 residual blocks (~94.3% accuracy)
 https://drive.google.com/file/d/1-CqrTLGltwVXHmK08UW-Ewx39XNUl44L/view?usp=sharing
+
+FINAL MODEL WEIGHTS:
+https://drive.google.com/file/d/1BTnE3knJnqgQK-_vGC-UyFIn5Zy9d203/view?usp=sharing
