@@ -1,0 +1,7 @@
+- setup:
+1. pip install -r requirements.txt
+2. open pycharm 
+3. run ui.py to get a gui to process single images
+4. camTracker.py uses webcam to process a frame every 5 seconds
+
+https://drive.google.com/file/d/1Od7pCvSZjV9pqd1iMqWQkoG0ffx-LpqG/view?usp=sharing
