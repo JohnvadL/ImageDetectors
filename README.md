@@ -1,4 +1,5 @@
 # ImageDetectors
+- to see a demonstration download and unzip the files in ui_download_link.txt for interactive version of our project
 
 ### Target Completion Date: Saturday or Sunday
 
