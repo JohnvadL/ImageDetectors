@@ -4,4 +4,4 @@
 3. run ui.py to get a gui to process single images
 4. camTracker.py uses webcam to process a frame every 5 seconds
 
-hhttps://drive.google.com/file/d/10Hy6AzKsYRE_yn6N1pOHEvex3qx0H0Yv/view?usp=sharing
+https://drive.google.com/file/d/1iaVsf3e6f3zfpWzMJaFI5itafNEm8iJJ/view?usp=sharing
